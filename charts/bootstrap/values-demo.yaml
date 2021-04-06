@@ -6,6 +6,6 @@ targetRevision: demo #this is for helm configs
 imageTag: &tag demo #this is for container image
 
 parameters:
-  - name: imageTag
+  - name: image.tag 
     value: *tag
       #TODO OVERRIDE THINGS IN VALUES.YAML INSTEAD OF USING VALUES-CI.YAML

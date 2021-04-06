@@ -7,6 +7,6 @@ imageTag: &tag pro #this is for container image
 valueFile: values-pro.yaml
 
 parameters:
-  - name: imageTag
+  - name: image.tag
     value: *tag
 

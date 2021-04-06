@@ -10,3 +10,8 @@ targetRevision: main #this is for helm configs
 imageTag: &tag ci #this is for container image
 
 autoSync: true
+
+parameters:
+  - name: image.tag
+    value: *tag
+
