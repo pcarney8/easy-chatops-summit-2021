@@ -9,6 +9,18 @@ metadata:
     auto-prune: {{ .Values.prune | default "true" | quote }}
     sidecar-injector: enabled
 ---
+apiVersion: v1
+kind: RoleBinding
+metadata:
+  name: serviceaccount-ci-cd-default-edit-role
+  namespace: {{ .Values.namespace }}
+roleRef:
+  name: "system:image-puller"
+subjects:
+- kind: ServiceAccount
+  name: "default"
+  namespace: "ci-cd"
+---
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
