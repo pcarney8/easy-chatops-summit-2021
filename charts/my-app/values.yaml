@@ -42,7 +42,7 @@ service:
 
 route:
   enabled: true
-  portName: 8080-tcp
+  portName: http 
   name: golang-sample
 
 ingress:
