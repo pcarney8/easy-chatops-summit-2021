@@ -24,6 +24,7 @@ jobs:
       with:
         openshift_server_url: ${{ secrets.OPENSHIFT_SERVER }}
         openshift_password: ${{ secrets.OPENSHIFT_PASSWORD }}
+        openshift_username: ${{ env.OPENSHIFT_USERNAME }}
         insecure_skip_tls_verify: true
         namespace: ${{ env.OPENSHIFT_NAMESPACE }}
 
