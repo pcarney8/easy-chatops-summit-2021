@@ -43,7 +43,6 @@ service:
 route:
   enabled: true
   portName: http 
-  name: golang-sample
 
 ingress:
   enabled: false 

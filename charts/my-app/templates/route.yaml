@@ -1,8 +1,9 @@
 {{- if .Values.route.enabled }}
+{{- $fullName := include "my-app.fullname" . -}}
 apiVersion: route.openshift.io/v1
 kind: Route
 metadata:
-  name: {{ .Values.route.name }}
+  name: {{ $fullName }}
   labels: {{ .Values.route.labels }}
   annotations:
     {{- range $key, $value := .Values.route.annotations }}
@@ -14,7 +15,7 @@ spec:
     targetPort: {{ .Values.route.portName }}
   to:
     kind: Service
-    name: {{ .Values.route.name }}
+    name: {{ $fullName }}
     weight: 100
   wildcardPolicy: None
 {{- end }}
