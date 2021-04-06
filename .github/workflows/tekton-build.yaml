@@ -40,6 +40,12 @@ jobs:
         PIPELINE_RUN_TEMPLATE: ".github/pipeline-runs/buildah-pipeline-run.yaml"
       run: |
         #!/bin/bash
+        echo 'in script'
+
+        env 
+
+        cat /home/runner/work/easy-chatops-summit-2021/easy-chatops-summit-2021/kubeconfig.yaml
+
         oc whoami
         oc get pods
 
