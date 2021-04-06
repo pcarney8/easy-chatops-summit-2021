@@ -65,7 +65,14 @@ jobs:
         openshift_username: ${{ env.OPENSHIFT_USERNAME }}
 
     - name: Deploy Namespace and Argo app deployment yaml to OpenShift cluster
-      if: ${{ github.event.client_payload.slash_command.cluster == 'ci' }}
+      if: ${{ github.event.client_payload.slash_command.namespace == 'ci' }}
+      env:
+        ARGO_NAMESPACE: argo-cd
+      run: |
+        helm template ./charts/bootstrap | oc apply -n $ARGO_NAMESPACE -f -
+
+    - name: Deploy Namespace and Argo app deployment yaml to OpenShift cluster
+      if: ${{ github.event.client_payload.slash_command.namespace != 'ci' }}
       env:
         ARGO_NAMESPACE: argo-cd
       run: |
