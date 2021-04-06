@@ -56,6 +56,7 @@ jobs:
         openshift_password: ${{ secrets.OPENSHIFT_PASSWORD }}
         insecure_skip_tls_verify: true
         namespace: ${{ env.OPENSHIFT_NAMESPACE }}
+        openshift_username: ${{ env.OPENSHIFT_USERNAME }}
 
     - name: Authenticate and set context for Production cluster
       if: ${{ github.event.client_payload.slash_command.cluster == 'prod' }}
@@ -68,6 +69,7 @@ jobs:
         openshift_password: ${{ secrets.OPENSHIFT_PASSWORD_PROD }}
         insecure_skip_tls_verify: true
         namespace: ${{ env.OPENSHIFT_NAMESPACE }}
+        openshift_username: ${{ env.OPENSHIFT_USERNAME }}
 
     - name: Install CLI tools
       uses: redhat-actions/openshift-tools-installer@v1

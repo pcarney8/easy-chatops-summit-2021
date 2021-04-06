@@ -49,6 +49,7 @@ jobs:
         openshift_password: ${{ secrets.OPENSHIFT_PASSWORD }}
         insecure_skip_tls_verify: true
         namespace: ${{ env.OPENSHIFT_NAMESPACE }}
+        openshift_username: ${{ env.OPENSHIFT_USERNAME }}
 
     - name: Tag image
       id: tag_image
