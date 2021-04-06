@@ -16,18 +16,19 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+
     - name: Authenticate and set context
       uses: redhat-actions/oc-login@v1
       env:
-        OPENSHIFT_USERNAME: opentlc-mgr 
+        OPENSHIFT_USERNAME: opentlc-mgr
       with:
         openshift_server_url: ${{ secrets.OPENSHIFT_SERVER }}
         openshift_password: ${{ secrets.OPENSHIFT_PASSWORD }}
         openshift_username: ${{ env.OPENSHIFT_USERNAME }}
         insecure_skip_tls_verify: true
 
-    - name: Checkout
-      uses: actions/checkout@v2
 
     - name: Install CLI tools
       uses: redhat-actions/openshift-tools-installer@v1
