@@ -6,7 +6,7 @@ on:
 
 jobs:
   tekton:
-    name: tekton on k8s
+    name: tekton on OpenShift 
     runs-on: ubuntu-latest
 
     steps:

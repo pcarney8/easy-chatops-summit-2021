@@ -97,6 +97,4 @@ jobs:
           |---|---|---|
           | `/deploy` | Deploys the promotion to k8s cluster based on Issue Title | `cluster=<ci or prod>`</br>optional: `namespace=<namespace>` note: this is also the name of the `charts/my-app/values-*.yaml` file that will be used |
           | `/promote` | Promotes with new Quay tag (e.g. demo), updates label ('promoted to demo'), and updates references on branch | N/A |
-          | `/test` | Creates and Runs the test job | `imagetag=<tag from Quay>`<br/>`namespace=<namespace on kube>` |
-          | `/seed` | Creates and Runs the seed database job | `imagetag=<tag from Quay>`<br/>`namespace=<namespace on kube>` |
           | `/cancel` | Cancels the current release (closes this issue) | N/A |
