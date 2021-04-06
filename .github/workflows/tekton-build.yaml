@@ -3,9 +3,9 @@ name: Tekton Builds
 on:
   push:
     branches:
-      - develop
+      - main 
     paths:
-      - "src/**"
+      - "src"
 env:
   NAMESPACE: ci-cd
 

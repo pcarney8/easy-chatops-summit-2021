@@ -1,12 +1,12 @@
 on:
   pull_request:
     branches:
-      - develop
+      - main
     paths:
       - 'charts/**'
   push:
     branches:
-      - develop 
+      - main 
     paths:
       - 'charts/**'
 
