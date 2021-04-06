@@ -5,12 +5,8 @@ on:
     branches:
       - develop
     paths:
-      - "build"
+      - "src/**"
 env:
-  REGISTRY_USER: pcarney8 
-  REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
-  IMAGE_REGISTRY: quay.io
-  IMAGE_REPOSITORY: easy-chatops-summit-2021
   NAMESPACE: ci-cd
 
 jobs:
@@ -61,10 +57,7 @@ jobs:
           exit 0
         fi
 
-    - name: Tag Python image (hash -> ci)
-      env:
-        REGISTRY: ${{ env.IMAGE_REGISTRY }}/${{ env.REGISTRY_USER }} 
-        REPOSITORY: ${{ env.IMAGE_REPOSITORY }}  
+    - name: Tag image (hash -> ci)
       run: |
         oc tag $NAMESPACE/my-app:$GITHUB_SHA $NAMESPACE/my-app:ci
         oc tag $NAMESPACE/my-app:$GITHUB_SHA $NAMESPACE/my-app:latest
