@@ -1,0 +1,20 @@
+{{- if .Values.route.enabled }}
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: {{ .Values.route.name }}
+  labels: {{ .Values.route.labels }}
+  annotations:
+    {{- range $key, $value := .Values.route.annotations }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+spec:
+  host: null
+  port:
+    targetPort: {{ .Values.route.portName }}
+  to:
+    kind: Service
+    name: {{ .Values.route.name }}
+    weight: 100
+  wildcardPolicy: None
+{{- end }}
