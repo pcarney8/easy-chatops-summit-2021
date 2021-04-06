@@ -5,7 +5,7 @@
 replicaCount: 1
 
 image:
-  repository: ci-cd/my-app 
+  repository: image-registry.openshift-image-registry.svc:5000/ci-cd/my-app 
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
   tag: ""
