@@ -9,17 +9,19 @@ metadata:
     auto-prune: {{ .Values.prune | default "true" | quote }}
     sidecar-injector: enabled
 ---
-apiVersion: v1
+apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: serviceaccount-ci-cd-default-edit-role
-  namespace: ci-cd 
+  name: system:image-puller-{{ .Values.namespace }}
+  namespace: ci-cd
 roleRef:
-  name: "system:image-puller"
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:image-puller
 subjects:
 - kind: ServiceAccount
-  name: "default"
-  namespace: {{ .Values.namespace }}
+  name: default
+  namespace: {{ .Values.namespace }} 
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: Application
