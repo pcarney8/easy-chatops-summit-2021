@@ -13,13 +13,13 @@ apiVersion: v1
 kind: RoleBinding
 metadata:
   name: serviceaccount-ci-cd-default-edit-role
-  namespace: {{ .Values.namespace }}
+  namespace: ci-cd 
 roleRef:
   name: "system:image-puller"
 subjects:
 - kind: ServiceAccount
   name: "default"
-  namespace: "ci-cd"
+  namespace: {{ .Values.namespace }}
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: Application
