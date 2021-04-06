@@ -28,7 +28,6 @@ jobs:
           helm dep up
           cd ../../
           helm template ./charts/my-app >> ./helm-output/be-ci.yaml 
-          helm template ./charts/my-app -f ./charts/my-app/values-demo.yaml >> ./helm-output/be-demo.yaml 
           helm template ./charts/my-app -f ./charts/my-app/values-pro.yaml >> ./helm-output/be-pro.yaml 
           helm template ./charts/bootstrap >> ./helm-output/bootstrap-ci.yaml 
           helm template ./charts/bootstrap -f ./charts/bootstrap/values-demo.yaml >> ./helm-output/bootstrap-demo.yaml 

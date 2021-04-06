@@ -5,10 +5,8 @@ on:
     types: [promote-command]
 
 env:
-  REGISTRY_USER: pcarney8
-  REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
-  IMAGE_REGISTRY: quay.io
-  IMAGE_REPOSITORY: easy-chatops-summit-2021
+  NAMESPACE: ci-cd
+  APP_NAME: my-app
 
 jobs:
   promote-image:
@@ -43,22 +41,18 @@ jobs:
       uses: redhat-actions/oc-login@v1
       env:
         OPENSHIFT_USERNAME: opentlc-mgr 
-        OPENSHIFT_NAMESPACE: ci-cd
       with:
         openshift_server_url: ${{ secrets.OPENSHIFT_SERVER }}
         openshift_password: ${{ secrets.OPENSHIFT_PASSWORD }}
         insecure_skip_tls_verify: true
-        namespace: ${{ env.OPENSHIFT_NAMESPACE }}
         openshift_username: ${{ env.OPENSHIFT_USERNAME }}
 
     - name: Tag image
       id: tag_image
       env:
-        REGISTRY: ${{ env.IMAGE_REGISTRY }}/${{ env.REGISTRY_USER }}
-        REPOSITORY: ${{ env.IMAGE_REPOSITORY }}
         IMAGE_TAG: ${{ steps.env_info.outputs.issuetitle }}
       run: |
-        oc tag $REGISTRY/$REPOSITORY:$IMAGE_TAG $REGISTRY/$REPOSITORY:$NEW_ENV
+        oc tag $NAMESPACE/$APP_NAME:$IMAGE_TAG $NAMESPACE/$APP_NAME:$NEW_ENV
 
     - name: Update Target Revision
       uses: mikefarah/yq@3.3.2
