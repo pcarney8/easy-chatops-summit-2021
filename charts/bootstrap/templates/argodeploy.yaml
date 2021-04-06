@@ -5,9 +5,6 @@ apiVersion: v1
 kind: Namespace
 metadata:
   name: {{ .Values.namespace }}
-  labels:
-    auto-prune: {{ .Values.prune | default "true" | quote }}
-    sidecar-injector: enabled
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding

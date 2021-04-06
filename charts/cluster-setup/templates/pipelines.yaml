@@ -1,0 +1,56 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: my-app-pipeline
+  namespace: ci-cd
+spec:
+  tasks:
+  - name: git-clone
+    params:
+    - name: url
+      value: https://github.com/pcarney8/easy-chatops-summit-2021
+    - name: revision
+      value: main
+    - name: submodules
+      value: "true"
+    - name: depth
+      value: "1"
+    - name: sslVerify
+      value: "true"
+    - name: deleteExisting
+      value: "true"
+    - name: verbose
+      value: "true"
+    - name: gitInitImage
+      value: gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init:v0.21.0
+    taskRef:
+      kind: Task
+      name: git-clone
+    workspaces:
+    - name: output
+      workspace: source
+  - name: s2i
+    params:
+    - name: BUILDER_IMAGE
+      value: centos/go-toolset-7-centos7
+    - name: IMAGE_NAME
+      value: image-registry.openshift-image-registry.svc:5000/ci-cd/my-app
+    - name: PATH_CONTEXT
+      value: ./src/
+    - name: TLSVERIFY
+      value: "false"
+    - name: LOGLEVEL
+      value: "10"
+    runAfter:
+    - git-clone
+    taskRef:
+      kind: Task
+      name: s2i
+    workspaces:
+    - name: source
+      workspace: source
+  workspaces:
+  - description: |
+      This workspace will receive the cloned git repo and be passed
+      to the next Task for the repo's README.md file to be read.
+    name: source

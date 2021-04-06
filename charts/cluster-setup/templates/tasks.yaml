@@ -1,0 +1,226 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  annotations:
+    tekton.dev/displayName: git clone
+    tekton.dev/pipelines.minVersion: 0.21.0
+    tekton.dev/tags: git
+  labels:
+    app.kubernetes.io/version: "0.3"
+  name: git-clone
+  namespace: ci-cd
+spec:
+  description: |-
+    These Tasks are Git tasks to work with repositories used by other tasks in your Pipeline.
+    The git-clone Task will clone a repo from the provided url into the output Workspace. By default the repo will be cloned into the root of your Workspace. You can clone into a subdirectory by setting this Task's subdirectory param. This Task also supports sparse checkouts. To perform a sparse checkout, pass a list of comma separated directory patterns to this Task's sparseCheckoutDirectories param.
+  params:
+  - description: git url to clone
+    name: url
+    type: string
+  - default: ""
+    description: git revision to checkout (branch, tag, sha, ref…)
+    name: revision
+    type: string
+  - default: ""
+    description: (optional) git refspec to fetch before checking out revision
+    name: refspec
+    type: string
+  - default: "true"
+    description: defines if the resource should initialize and fetch the submodules
+    name: submodules
+    type: string
+  - default: "1"
+    description: performs a shallow clone where only the most recent commit(s) will
+      be fetched
+    name: depth
+    type: string
+  - default: "true"
+    description: defines if http.sslVerify should be set to true or false in the global
+      git config
+    name: sslVerify
+    type: string
+  - default: ""
+    description: subdirectory inside the "output" workspace to clone the git repo
+      into
+    name: subdirectory
+    type: string
+  - default: ""
+    description: defines which directories patterns to match or exclude when performing
+      a sparse checkout
+    name: sparseCheckoutDirectories
+    type: string
+  - default: "true"
+    description: clean out the contents of the repo's destination directory (if it
+      already exists) before trying to clone the repo there
+    name: deleteExisting
+    type: string
+  - default: ""
+    description: git HTTP proxy server for non-SSL requests
+    name: httpProxy
+    type: string
+  - default: ""
+    description: git HTTPS proxy server for SSL requests
+    name: httpsProxy
+    type: string
+  - default: ""
+    description: git no proxy - opt out of proxying HTTP/HTTPS requests
+    name: noProxy
+    type: string
+  - default: "true"
+    description: log the commands used during execution
+    name: verbose
+    type: string
+  - default: gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init:v0.21.0
+    description: the image used where the git-init binary is
+    name: gitInitImage
+    type: string
+  results:
+  - description: The precise commit SHA that was fetched by this Task
+    name: commit
+  - description: The precise URL that was fetched by this Task
+    name: url
+  steps:
+  - image: $(params.gitInitImage)
+    name: clone
+    script: |
+      #!/bin/sh
+      set -eu -o pipefail
+
+      if [[ "$(params.verbose)" == "true" ]] ; then
+        set -x
+      fi
+
+      CHECKOUT_DIR="$(workspaces.output.path)/$(params.subdirectory)"
+
+      cleandir() {
+        # Delete any existing contents of the repo directory if it exists.
+        #
+        # We don't just "rm -rf $CHECKOUT_DIR" because $CHECKOUT_DIR might be "/"
+        # or the root of a mounted volume.
+        if [[ -d "$CHECKOUT_DIR" ]] ; then
+          # Delete non-hidden files and directories
+          rm -rf "$CHECKOUT_DIR"/*
+          # Delete files and directories starting with . but excluding ..
+          rm -rf "$CHECKOUT_DIR"/.[!.]*
+          # Delete files and directories starting with .. plus any other character
+          rm -rf "$CHECKOUT_DIR"/..?*
+        fi
+      }
+
+      if [[ "$(params.deleteExisting)" == "true" ]] ; then
+        cleandir
+      fi
+
+      test -z "$(params.httpProxy)" || export HTTP_PROXY=$(params.httpProxy)
+      test -z "$(params.httpsProxy)" || export HTTPS_PROXY=$(params.httpsProxy)
+      test -z "$(params.noProxy)" || export NO_PROXY=$(params.noProxy)
+
+      /ko-app/git-init \
+        -url "$(params.url)" \
+        -revision "$(params.revision)" \
+        -refspec "$(params.refspec)" \
+        -path "$CHECKOUT_DIR" \
+        -sslVerify="$(params.sslVerify)" \
+        -submodules="$(params.submodules)" \
+        -depth "$(params.depth)" \
+        -sparseCheckoutDirectories "$(params.sparseCheckoutDirectories)"
+      cd "$CHECKOUT_DIR"
+      RESULT_SHA="$(git rev-parse HEAD)"
+      EXIT_CODE="$?"
+      if [ "$EXIT_CODE" != 0 ] ; then
+        exit $EXIT_CODE
+      fi
+      # ensure we don't add a trailing newline to the result
+      echo -n "$RESULT_SHA" > $(results.commit.path)
+      echo -n "$(params.url)" > $(results.url.path)
+  workspaces:
+  - description: The git repo will be cloned onto the volume backing this workspace
+    name: output
+---
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  annotations:
+    tekton.dev/pipelines.minVersion: 0.17.0
+    tekton.dev/tags: image-build
+  labels:
+    app.kubernetes.io/version: "0.2"
+  name: s2i
+  namespace: ci-cd
+spec:
+  description: |-
+    Source-to-Image (S2I) is a toolkit and workflow for building reproducible container images from source code
+    S2I produces images by injecting source code into a base S2I container image and letting the container prepare that source code for execution. The base S2I container images contains the language runtime and build tools needed for building and running the source code.
+  params:
+  - description: The location of the s2i builder image.
+    name: BUILDER_IMAGE
+    type: string
+  - description: Reference of the image S2I will produce.
+    name: IMAGE_NAME
+    type: string
+  - default: .
+    description: The location of the path to run s2i from.
+    name: PATH_CONTEXT
+    type: string
+  - default: "true"
+    description: Verify the TLS on the registry endpoint (for push/pull to a non-TLS
+      registry)
+    name: TLSVERIFY
+    type: string
+  - default: "0"
+    description: Log level when running the S2I binary
+    name: LOGLEVEL
+    type: string
+  results:
+  - description: Digest of the image just built.
+    name: IMAGE_DIGEST
+  steps:
+  - command:
+    - /usr/local/bin/s2i
+    - --loglevel=$(params.LOGLEVEL)
+    - build
+    - $(params.PATH_CONTEXT)
+    - $(params.BUILDER_IMAGE)
+    - --as-dockerfile
+    - /gen-source/Dockerfile.gen
+    image: quay.io/openshift-pipeline/s2i:nightly
+    name: generate
+    volumeMounts:
+    - mountPath: /gen-source
+      name: gen-source
+    workingDir: $(workspaces.source.path)
+  - image: quay.io/buildah/stable:v1.17.0
+    name: build
+    script: |
+      [[ "$(workspaces.sslcertdir.bound)" == "true" ]] && CERT_DIR_FLAG="--cert-dir $(workspaces.sslcertdir.path)"
+      buildah ${CERT_DIR_FLAG} bud --tls-verify=$(params.TLSVERIFY) --layers \
+      -f /gen-source/Dockerfile.gen -t $(params.IMAGE_NAME) .
+    securityContext:
+      privileged: true
+    volumeMounts:
+    - mountPath: /var/lib/containers
+      name: varlibcontainers
+    - mountPath: /gen-source
+      name: gen-source
+    workingDir: /gen-source
+  - image: quay.io/buildah/stable:v1.17.0
+    name: push
+    script: |
+      [[ "$(workspaces.sslcertdir.bound)" == "true" ]] && CERT_DIR_FLAG="--cert-dir $(workspaces.sslcertdir.path)"
+      buildah ${CERT_DIR_FLAG} push --tls-verify=$(params.TLSVERIFY) --digestfile $(workspaces.source.path)/image-digest \
+      $(params.IMAGE_NAME) docker://$(params.IMAGE_NAME)
+    securityContext:
+      privileged: true
+    volumeMounts:
+    - mountPath: /var/lib/containers
+      name: varlibcontainers
+  - image: $(params.BUILDER_IMAGE)
+    name: digest-to-results
+    script: cat $(workspaces.source.path)/image-digest | tee /tekton/results/IMAGE_DIGEST
+  volumes:
+  - name: varlibcontainers
+  - name: gen-source
+  workspaces:
+  - name: source
+  - name: sslcertdir
+    optional: true
