@@ -9,6 +9,34 @@ metadata:
     auto-prune: {{ .Values.prune | default "true" | quote }}
     sidecar-injector: enabled
 ---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: system:image-puller-{{ .Values.namespace }}
+  namespace: ci-cd
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:image-puller
+subjects:
+- kind: ServiceAccount
+  name: default
+  namespace: {{ .Values.namespace }} 
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: argo-cd-access 
+  namespace: {{ .Values.namespace }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: edit 
+subjects:
+- kind: ServiceAccount
+  name: argocd-application-controller
+  namespace: argo-cd
+---
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
