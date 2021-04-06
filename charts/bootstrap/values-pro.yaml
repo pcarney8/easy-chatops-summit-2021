@@ -2,11 +2,9 @@
 # Declare variables to be passed into your templates.
 
 namespace: pro
-targetRevision: pro #this is for helm configs
-imageTag: &tag pro #this is for container image
+targetRevision: v1.1.0-branch #this is for helm configs
+imageTag: &tag v1.1.0 #this is for container image
 valueFile: values-pro.yaml
-
 parameters:
   - name: image.tag
     value: *tag
-
