@@ -1,0 +1,11 @@
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+namespace: demo
+targetRevision: demo #this is for helm configs
+imageTag: &tag demo #this is for container image
+
+parameters:
+  - name: imageTag
+    value: *tag
+      #TODO OVERRIDE THINGS IN VALUES.YAML INSTEAD OF USING VALUES-CI.YAML

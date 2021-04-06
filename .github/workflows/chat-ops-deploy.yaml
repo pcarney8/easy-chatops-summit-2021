@@ -1,0 +1,95 @@
+name: Deploy to Kubernetes
+
+on:
+  repository_dispatch:
+    types: [deploy-command]
+
+jobs:
+  deploy-to-openshift:
+    name: deploy to OpenShift
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Get Environment Info
+      id: env_info
+      run: |
+        ISSUE_TITLE=$(jq -r .client_payload.github.payload.issue.title $GITHUB_EVENT_PATH)
+        echo ::set-output name=release::$(git ls-remote --heads https://github.com/$GITHUB_REPOSITORY $ISSUE_TITLE)
+        echo ::set-output name=issuenm::$(jq .client_payload.github.payload.issue.number $GITHUB_EVENT_PATH)
+        echo ::set-output name=issuetitle::$ISSUE_TITLE
+        echo ::set-output name=comment_url::$(jq .client_payload.github.payload.comment.html_url $GITHUB_EVENT_PATH)
+        echo ::set-output name=labels::$(jq .client_payload.github.payload.issue.labels $GITHUB_EVENT_PATH)
+
+    - name: Set New Env / Namespace (CI)
+      if: ${{ contains(steps.env_info.outputs.labels, 'promoted to demo') }}
+      run: |
+        echo "NEW_ENV=demo" >> $GITHUB_ENV
+    - name: Set New Env / Namespace (Pro)
+      if: ${{ contains(steps.env_info.outputs.labels, 'promoted to pro') }}
+      run: |
+        echo "NEW_ENV=pro" >> $GITHUB_ENV
+    - name: Set New Env / Namespace (User Input)
+      if: ${{ github.event.client_payload.slash_command.namespace != null }}
+      run: |
+        echo "NEW_ENV=${{ github.event.client_payload.slash_command.namespace }}" >> $GITHUB_ENV
+
+    - name: Checkout
+      uses: actions/checkout@v2
+      with:
+        ref: ${{ steps.env_info.outputs.issuetitle }}-branch
+
+    - name: Authenticate and set context for Non-Prod cluster
+      if: ${{ github.event.client_payload.slash_command.cluster == 'ci' }}
+      uses: redhat-actions/oc-login@v1
+      env:
+        OPENSHIFT_USER: opentlc-mgr #TODO should this just be user1? if so, make sure to change the password 
+        OPENSHIFT_NAMESPACE: argo-cd 
+      with:
+        openshift_server_url: ${{ secrets.OPENSHIFT_SERVER }}
+        openshift_password: ${{ secrets.OPENSHIFT_PASSWORD }}
+        insecure_skip_tls_verify: true
+        namespace: ${{ env.OPENSHIFT_NAMESPACE }}
+
+    - name: Authenticate and set context for Production cluster
+      if: ${{ github.event.client_payload.slash_command.cluster == 'prod' }}
+      uses: redhat-actions/oc-login@v1
+      env:
+        OPENSHIFT_USER: opentlc-mgr #TODO should this just be user1? if so, make sure to change the password 
+        OPENSHIFT_NAMESPACE: argo-cd
+      with:
+        openshift_server_url: ${{ secrets.OPENSHIFT_SERVER_PROD }}
+        openshift_password: ${{ secrets.OPENSHIFT_PASSWORD_PROD }}
+        insecure_skip_tls_verify: true
+        namespace: ${{ env.OPENSHIFT_NAMESPACE }}
+
+    - name: Deploy Namespace and Argo app deployment yaml to OpenShift cluster
+      if: ${{ github.event.client_payload.slash_command.cluster == 'ci' }}
+      env:
+        KUBECONFIG_FILE: ${{ steps.write_file_ci.outputs.filePath }}
+        ARGO_NAMESPACE: argo-cd
+      run: |
+        helm template ./charts/bootstrap -f ./charts/bootstrap/values-$NEW_ENV.yaml | kubectl apply -n $ARGO_NAMESPACE --kubeconfig $KUBECONFIG_FILE -f -
+
+    - name: Create comment
+      uses: peter-evans/create-or-update-comment@v1
+      if: ${{ github.event.client_payload.slash_command.cluster != null }}
+      with:
+        repository: ${{ github.event.client_payload.github.payload.repository.full_name }}
+        issue-number: "${{ steps.env_info.outputs.issuenm }}"
+        body: |
+          Deployed ${{ steps.env_info.outputs.issuetitle }} to ${{ env.NEW_ENV }} on ${{ github.event.client_payload.slash_command.cluster }}! 🏎️
+
+          Now that you've deployed the new configuration, rollout your new images with `/rollout`!
+          | Command | Description | Parameters |
+          |---|---|---|
+          | `/rollout` | Rollout all images to OpenShift cluster | `cluster=<ci or prod>`</br>optional: `namespace=<namespace>` |
+          | `/cancel` | Cancels the current release (closes this issue) | N/A |
+
+    - name: Create comment (no cluster set)
+      uses: peter-evans/create-or-update-comment@v1
+      if: ${{ github.event.client_payload.slash_command.cluster == null }}
+      with:
+        repository: ${{ github.event.client_payload.github.payload.repository.full_name }}
+        issue-number: "${{ steps.env_info.outputs.issuenm }}"
+        body: |
+          Didn't Deploy! Please set a cluster!

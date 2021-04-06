@@ -1,0 +1,107 @@
+name: Promote Image
+
+on:
+  repository_dispatch:
+    types: [promote-command]
+
+env:
+  REGISTRY_USER: pcarney8
+  REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
+  IMAGE_REGISTRY: quay.io
+  IMAGE_REPOSITORY: easy-chatops-summit-2021
+
+jobs:
+  promote-image:
+    name: promote image
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Set Env Variables
+      id: env_info
+      run: |
+        echo ::set-output name=issuetitle::$(jq -r .client_payload.github.payload.issue.title $GITHUB_EVENT_PATH)
+        echo ::set-output name=issuenm::$(jq .client_payload.github.payload.issue.number $GITHUB_EVENT_PATH)
+        echo ::set-output name=labels::$(jq .client_payload.github.payload.issue.labels $GITHUB_EVENT_PATH)
+        echo ::set-output name=requestor::$(jq .client_payload.github.actor $GITHUB_EVENT_PATH)
+        echo ::set-output name=comment_url::$(jq .client_payload.github.payload.comment.html_url $GITHUB_EVENT_PATH)
+
+    - name: Set New Env (CI)
+      if: ${{ !contains(steps.env_info.outputs.labels, 'promoted to demo') }}
+      run: |
+        echo "NEW_ENV=demo" >> $GITHUB_ENV
+    - name: Set New Env (Production)
+      if: ${{ contains(steps.env_info.outputs.labels, 'promoted to demo') }}
+      run: |
+        echo "NEW_ENV=pro" >> $GITHUB_ENV
+
+    - name: Checkout
+      uses: actions/checkout@v2
+      with:
+        ref: ${{ steps.env_info.outputs.issuetitle }}-branch
+
+    - name: Authenticate and set context
+      uses: redhat-actions/oc-login@v1
+      env:
+        OPENSHIFT_USER: opentlc-mgr 
+        OPENSHIFT_NAMESPACE: ci-cd
+      with:
+        openshift_server_url: ${{ secrets.OPENSHIFT_SERVER }}
+        openshift_password: ${{ secrets.OPENSHIFT_PASSWORD }}
+        insecure_skip_tls_verify: true
+        namespace: ${{ env.OPENSHIFT_NAMESPACE }}
+
+    - name: Tag image
+      id: tag_image
+      env:
+        REGISTRY: ${{ env.IMAGE_REGISTRY }}/${{ env.REGISTRY_USER }}
+        REPOSITORY: ${{ env.IMAGE_REPOSITORY }}
+        IMAGE_TAG: ${{ steps.env_info.outputs.issuetitle }}
+      run: |
+        oc tag $REGISTRY/$REPOSITORY:$IMAGE_TAG $REGISTRY/$REPOSITORY:$NEW_ENV
+
+    - name: Update Target Revision
+      uses: mikefarah/yq@3.3.2
+      with:
+        cmd: "yq w -i $GITHUB_WORKSPACE/charts/bootstrap/values-$NEW_ENV.yaml targetRevision ${{ steps.env_info.outputs.issuetitle }}-branch"
+
+    - name: Update Image Tag
+      uses: mikefarah/yq@3.3.2
+      with:
+        cmd: "yq w -i --anchorName tag $GITHUB_WORKSPACE/charts/bootstrap/values-$NEW_ENV.yaml imageTag ${{ steps.env_info.outputs.issuetitle }}"
+
+    - name: Commit changes
+      id: commit_changes
+      uses: stefanzweifel/git-auto-commit-action@v4
+      with:
+        branch: "${{ steps.env_info.outputs.issuetitle }}-branch"
+        commit_message: "Promoting to ${{ env.NEW_ENV }} requested from ${{ steps.env_info.outputs.comment_url }}"
+
+    - name: Apply label to issue
+      uses: actions/github-script@v1
+      if: ${{ steps.commit_changes.outcome == 'success' }}
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          github.issues.addLabels({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: ${{steps.env_info.outputs.issuenm}},
+            labels: ["promoted to ${{ env.NEW_ENV }}"]
+          })
+
+    - name: Create comment
+      uses: peter-evans/create-or-update-comment@v1
+      with:
+        repository: ${{ github.event.client_payload.github.payload.repository.full_name }}
+        issue-number: "${{ steps.env_info.outputs.issuenm }}"
+        body: |
+          Promoted release ${{ steps.env_info.outputs.issuetitle }} to ${{ env.NEW_ENV }}! 🚀
+
+          Now that you've promoted try `/deploy` to a cluster! And then promote again to the next environment! 🦄
+          | Command | Description | Parameters |
+          |---|---|---|
+          | `/deploy` | Deploys the promotion to k8s cluster based on Issue Title | `cluster=<ci or prod>`</br>optional: `namespace=<namespace>` note: this is also the name of the `charts/my-app/values-*.yaml` file that will be used |
+          | `/promote` | Promotes with new Quay tag (e.g. demo), updates label ('promoted to demo'), and updates references on branch | N/A |
+          | `/test` | Creates and Runs the test job | `imagetag=<tag from Quay>`<br/>`namespace=<namespace on kube>` |
+          | `/seed` | Creates and Runs the seed database job | `imagetag=<tag from Quay>`<br/>`namespace=<namespace on kube>` |
+          | `/cancel` | Cancels the current release (closes this issue) | N/A |

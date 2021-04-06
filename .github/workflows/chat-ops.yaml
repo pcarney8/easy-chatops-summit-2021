@@ -1,0 +1,16 @@
+name: Chat Ops
+
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  launcher:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Command Dispatch
+      uses: peter-evans/slash-command-dispatch@v1
+      with:
+        token: ${{ secrets.slash_token }}
+        commands: release, promote, cancel, deploy, tekton, rollout
+        named-args: true

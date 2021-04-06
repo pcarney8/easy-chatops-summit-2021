@@ -1,0 +1,93 @@
+name: Run Tekton Task or Pipeline in ChatOps 
+
+on:
+  repository_dispatch:
+    types: [tekton-command]
+
+jobs:
+  tekton:
+    name: tekton on k8s
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Get Environment Info
+      id: env_info
+      run: |
+        ISSUE_TITLE=$(jq -r .client_payload.github.payload.issue.title $GITHUB_EVENT_PATH)
+        echo ::set-output name=release::$(git ls-remote --heads https://github.com/$GITHUB_REPOSITORY $ISSUE_TITLE)
+        echo ::set-output name=issuenm::$(jq .client_payload.github.payload.issue.number $GITHUB_EVENT_PATH)
+        echo ::set-output name=issuetitle::$ISSUE_TITLE
+        echo ::set-output name=comment_url::$(jq .client_payload.github.payload.comment.html_url $GITHUB_EVENT_PATH)
+        echo ::set-output name=labels::$(jq .client_payload.github.payload.issue.labels $GITHUB_EVENT_PATH)
+
+    - name: Set New Env / Namespace (CI)
+      if: ${{ contains(steps.env_info.outputs.labels, 'promoted to demo') }}
+      run: |
+        echo "NEW_ENV=demo" >> $GITHUB_ENV
+    - name: Set New Env / Namespace (Pro)
+      if: ${{ contains(steps.env_info.outputs.labels, 'promoted to pro') }}
+      run: |
+        echo "NEW_ENV=pro" >> $GITHUB_ENV
+    - name: Set New Env / Namespace (User Input)
+      if: ${{ github.event.client_payload.slash_command.namespace != null }}
+      run: |
+        echo "NEW_ENV=${{ github.event.client_payload.slash_command.namespace }}" >> $GITHUB_ENV
+
+    - name: Checkout
+      uses: actions/checkout@v2
+      if: ${{ github.event.client_payload.slash_command.branch == null }}
+      with:
+        ref: ${{ steps.env_info.outputs.issuetitle }}-branch
+
+    - name: Checkout (User Input)
+      if: ${{ github.event.client_payload.slash_command.branch != null }}
+      uses: actions/checkout@v2
+      with:
+        ref: ${{ github.event.client_payload.slash_command.branch }}
+
+    - name: Authenticate and set context for Non-Prod cluster
+      if: ${{ github.event.client_payload.slash_command.cluster == 'ci' }}
+      uses: redhat-actions/oc-login@v1
+      env:
+        OPENSHIFT_USER: opentlc-mgr #TODO should this just be user1? if so, make sure to change the password 
+        OPENSHIFT_NAMESPACE: argo-cd
+      with:
+        openshift_server_url: ${{ secrets.OPENSHIFT_SERVER }}
+        openshift_password: ${{ secrets.OPENSHIFT_PASSWORD }}
+        insecure_skip_tls_verify: true
+        namespace: ${{ env.OPENSHIFT_NAMESPACE }}
+
+    - name: Authenticate and set context for Production cluster
+      if: ${{ github.event.client_payload.slash_command.cluster == 'prod' }}
+      uses: redhat-actions/oc-login@v1
+      env:
+        OPENSHIFT_USER: opentlc-mgr #TODO should this just be user1? if so, make sure to change the password 
+        OPENSHIFT_NAMESPACE: argo-cd
+      with:
+        openshift_server_url: ${{ secrets.OPENSHIFT_SERVER_PROD }}
+        openshift_password: ${{ secrets.OPENSHIFT_PASSWORD_PROD }}
+        insecure_skip_tls_verify: true
+        namespace: ${{ env.OPENSHIFT_NAMESPACE }}
+
+    - name: Install CLI tools
+      uses: redhat-actions/openshift-tools-installer@v1
+      with:
+        tkn: "0.13.1"
+
+    - name: Run tekton
+      id: tekton_run
+      if: ${{ github.event.client_payload.slash_command.namespace != null }} && ${{ github.event.client_payload.slash_command.name != null }} && ${{ github.event.client_payload.slash_command.run != null }}
+      env:
+        KUBECONFIG_FILE: /home/runner/work/_temp/kubeconfig.yaml
+      run: |
+        tkn ${{ github.event.client_payload.slash_command.run }} start ${{ github.event.client_payload.slash_command.name }} -n ${{ github.event.client_payload.slash_command.namespace }} -k $KUBECONFIG_FILE
+
+    - name: Create comment
+      uses: peter-evans/create-or-update-comment@v1
+      if: ${{ steps.tekton_run.outcome == 'success' }}
+      with:
+        repository: ${{ github.event.client_payload.github.payload.repository.full_name }}
+        issue-number: "${{ steps.env_info.outputs.issuenm }}"
+        body: |
+          Tekton ${{ github.event.client_payload.slash_command.run }} started ${{ github.event.client_payload.slash_command.name }} in ${{ env.NEW_ENV }} on ${{ github.event.client_payload.slash_command.cluster }}! 🔧
+

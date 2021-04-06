@@ -1,0 +1,37 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ArgoCD
+metadata:
+  name: argocd
+  namespace: argo-cd
+spec:
+  server:
+    route:
+      enabled: true
+  statusBadgeEnabled: true
+---
+apiVersion: v1
+data:
+  application.instanceLabelKey: ""
+  configManagementPlugins: ""
+  dex.config: ""
+  ga.anonymizeusers: "false"
+  ga.trackingid: ""
+  help.chatText: ""
+  help.chatUrl: ""
+  kustomize.buildOptions: ""
+  repositories: |
+    - type: git
+      url: https://github.com/pcarney8/easy-chatops-summit-2021
+  repository.credentials: ""
+  resource.exclusions: ""
+  resource.inclusions: ""
+  statusbadge.enabled: "true"
+  url: https://argocd-server-argo-cd.apps.cluster-90c3.90c3.sandbox291.opentlc.com
+  users.anonymous.enabled: "false"
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/name: argocd-cm
+    app.kubernetes.io/part-of: argocd
+  name: argocd-cm
+  namespace: argo-cd

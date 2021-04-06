@@ -1,0 +1,52 @@
+{{- if .Values.namespace }}
+{{- if .Values.app_name }}
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .Values.namespace }}
+  labels:
+    auto-prune: {{ .Values.prune | default "true" | quote }}
+    sidecar-injector: enabled
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: {{ .Values.app_name }}-{{ .Values.namespace }}
+spec:
+  destination:
+    namespace: {{ .Values.namespace }}
+    server: {{ .Values.server | default "https://kubernetes.default.svc" }}
+  project: {{ .Values.project | default "default" }}
+  {{- if .Values.autoSync }}
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+  {{- end }}
+  {{- if .Values.diffIgnore }}
+  ignoreDifferences:
+  {{- range .Values.diffIgnore }}
+  - group: {{ .group }}
+    kind: {{ .kind }}
+    jsonPointers:
+      {{- range .jsonPointers }}
+      - {{ . }}
+      {{- end }}
+    {{- end }}
+  {{- end }}
+  source:
+    helm:
+      releaseName: {{ .Values.releasename | default .Values.app_name }}
+      {{- if .Values.parameters }}
+      parameters:
+{{ toYaml .Values.parameters | trim | indent 8 }}
+      {{- end }}
+      valueFiles:
+      - {{ .Values.valueFile | default "values.yaml" }}
+    path: {{ .Values.path | default (printf "charts/%s" .Values.app_name) }}
+    repoURL: {{ .Values.repoUrl | default (printf "https://github.com/pcarney8/%s" .Values.app_name) }}
+    targetRevision: {{ .Values.targetRevision | default "master" }}
+{{- end }}
+{{- end }}
+

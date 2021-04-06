@@ -1,0 +1,70 @@
+name: Tekton Builds
+
+on:
+  push:
+    branches:
+      - develop
+    paths:
+      - "build"
+env:
+  REGISTRY_USER: pcarney8 
+  REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
+  IMAGE_REGISTRY: quay.io
+  IMAGE_REPOSITORY: easy-chatops-summit-2021
+  NAMESPACE: ci-cd
+
+jobs:
+  tekton_run_build_image:
+    if: github.event.pull_request.draft == false
+    name: run build image using tekton
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Authenticate and set context
+      uses: redhat-actions/oc-login@v1
+      env:
+        OPENSHIFT_USER: opentlc-mgr #TODO should this just be user1? if so, make sure to change the password 
+        OPENSHIFT_NAMESPACE: argo-cd
+      with:
+        openshift_server_url: ${{ secrets.OPENSHIFT_SERVER }}
+        openshift_password: ${{ secrets.OPENSHIFT_PASSWORD }}
+        insecure_skip_tls_verify: true
+        namespace: ${{ env.OPENSHIFT_NAMESPACE }}
+
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Install CLI tools
+      uses: redhat-actions/openshift-tools-installer@v1
+      with:
+        tkn: "0.13.1"
+
+    - name: Run Build 
+      id: run_build_image
+      env:
+        PIPELINE_RUN_TEMPLATE: ".github/pipeline-runs/buildah-pipeline-run.yaml"
+      run: |
+        #!/bin/bash
+        PIPELINE_RUN_TRIGGER_LOGS=$(kubectl create -f $PIPELINE_RUN_TEMPLATE -n $NAMESPACE)
+
+        echo $PIPELINE_RUN_TRIGGER_LOGS
+
+        PIPELINE_RUN_NAME=$(echo $PIPELINE_RUN_TRIGGER_LOGS | awk '{print $1}' | awk -F'/' '{print $2}')
+
+        tkn pipelinerun logs -f $PIPELINE_RUN_NAME -f -n $NAMESPACE
+
+        kubectl get pipelinerun -n $NAMESPACE  $PIPELINE_RUN_NAME --no-headers  | awk '{print $2}'
+        RESULT=$(kubectl get pipelinerun -n $NAMESPACE  $PIPELINE_RUN_NAME --no-headers  | awk '{print $2}')
+        if [ $RESULT == "False" ]; then
+          exit 1
+        else
+          exit 0
+        fi
+
+    - name: Tag Python image (hash -> ci)
+      env:
+        REGISTRY: ${{ env.IMAGE_REGISTRY }}/${{ env.REGISTRY_USER }} 
+        REPOSITORY: ${{ env.IMAGE_REPOSITORY }}  
+      run: |
+        oc tag $NAMESPACE/my-app:$GITHUB_SHA $NAMESPACE/my-app:ci
+        oc tag $NAMESPACE/my-app:$GITHUB_SHA $NAMESPACE/my-app:latest

@@ -1,0 +1,19 @@
+name: Cancel Dispatch
+
+on:
+  repository_dispatch:
+    types: [cancel-command]
+jobs:
+  promote-release:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Set Env Variables
+      id: env_info
+      run: |
+        echo ::set-output name=issuenm::$(jq .client_payload.github.payload.issue.number $GITHUB_EVENT_PATH)
+        echo ::set-output name=requestor::$(jq .client_payload.github.actor $GITHUB_EVENT_PATH)
+    - name: Close Issue
+      uses: peter-evans/close-issue@v1
+      with:
+        issue-number: ${{ steps.env_info.outputs.issuenm }}
+        comment: Cancelling rollout as requested by ${{ steps.env_info.outputs.requestor }}.

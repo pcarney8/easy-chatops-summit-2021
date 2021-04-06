@@ -1,0 +1,40 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: tekton-tasks
+  namespace: argo-cd
+spec:
+  destination:
+    namespace: ci-cd
+    server: https://kubernetes.default.svc
+  project: default
+  source:
+    directory:
+      recurse: true
+    path: charts/tekton/tasks
+    repoURL: https://github.com/pcarney8/easy-chatops-summit-2021
+    targetRevision: main
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: tekton-pipelines
+  namespace: argo-cd
+spec:
+  destination:
+    namespace: ci-cd
+    server: https://kubernetes.default.svc
+  project: default
+  source:
+    path: charts/tekton/pipelines
+    repoURL: https://github.com/pcarney8/easy-chatops-summit-2021
+    targetRevision: main
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

@@ -1,0 +1,160 @@
+name: Release
+
+on:
+  repository_dispatch:
+    types: [release-command]
+
+env:
+  REGISTRY_USER: pcarney8
+  REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
+  IMAGE_REGISTRY: quay.io
+  IMAGE_REPOSITORY: easy-chatops-summit-2021
+
+jobs:
+  create-release-branch:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Get Environment Info
+      id: env_info
+      run: |
+        ISSUE_TITLE=$(jq -r .client_payload.github.payload.issue.title $GITHUB_EVENT_PATH)
+        echo ::set-output name=release::$(git ls-remote --heads https://github.com/$GITHUB_REPOSITORY $ISSUE_TITLE)
+        echo ::set-output name=issuenm::$(jq .client_payload.github.payload.issue.number $GITHUB_EVENT_PATH)
+        echo ::set-output name=issuetitle::$ISSUE_TITLE
+    - name: Create release branch
+      uses: peterjgrainger/action-create-branch@v1.0.0
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        branch: "${{ steps.env_info.outputs.issuetitle }}-branch"
+      if: ${{ steps.env_info.outputs.release == null }}
+    - name: Alert that release already exists
+      run: |
+        echo "Release branch ${{ steps.env_info.outputs.issuetitle }}-branch already exists. Skipping..."
+      if: ${{ steps.env_info.outputs.release != null }}
+    - name: Check if label exists
+      uses: actions/github-script@v1
+      id: label_check
+      continue-on-error: true
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          github.issues.getLabel({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            name: "${{ steps.env_info.outputs.issuetitle }}"
+          })
+    - name: Create label to be used for release
+      uses: actions/github-script@v1
+      id: create_label
+      with:
+        github-token: ${{secrets.GITHUB_TOKEN}}
+        script: |
+          github.issues.createLabel({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            name: "${{ steps.env_info.outputs.issuetitle }}",
+            color: "2d5893"
+          })
+      if: ${{ steps.label_check.outcome == 'failure' }}
+    - name: Apply label to issue
+      uses: actions/github-script@v1
+      if: ${{ steps.create_label.outcome == 'success' }}
+      with:
+        github-token: ${{secrets.GITHUB_TOKEN}}
+        script: |
+          github.issues.addLabels({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: ${{steps.env_info.outputs.issuenm}},
+            labels: ["${{ steps.env_info.outputs.issuetitle }}"]
+          })
+
+  update-release-pointers:
+    runs-on: ubuntu-latest
+    needs: create-release-branch
+    steps:
+    - name: Get Environment Info
+      id: env_info
+      run: |
+        echo ::set-output name=issuetitle::$(jq -r .client_payload.github.payload.issue.title $GITHUB_EVENT_PATH)
+        echo ::set-output name=issuenm::$(jq .client_payload.github.payload.issue.number $GITHUB_EVENT_PATH)
+        echo ::set-output name=comment_url::$(jq .client_payload.github.payload.comment.html_url $GITHUB_EVENT_PATH)
+    - uses: actions/checkout@v2
+      with:
+        ref: ${{ steps.env_info.outputs.issuetitle }}-branch
+
+    - name: Login to Quay.io
+      uses: redhat-actions/podman-login@v1
+      with:
+        username: ${{ env.REGISTRY_USER }}
+        password: ${{ env.REGISTRY_PASSWORD }}
+        registry: ${{ env.IMAGE_REGISTRY }}
+
+          #TODO figure out if they have an RH action for this
+    - name: Tag image (latest -> release id)
+      env:
+        REGISTRY: ${{ env.IMAGE_REGISTRY }}/${{ env.REGISTRY_USER }}
+        REPOSITORY: ${{ env.IMAGE_REPOSITORY }}
+        IMAGE_TAG: ${{ steps.env_info.outputs.issuetitle }}
+      run: |
+        buildah pull $REGISTRY/$REPOSITORY:latest
+        buildah tag $REGISTRY/$REPOSITORY:latest $REGISTRY/$REPOSITORY:$IMAGE_TAG
+        buildah push $REGISTRY/$REPOSITORY:$IMAGE_TAG
+
+    - name: Update Target Revision for bootstrap
+      uses: mikefarah/yq@3.3.2
+      with:
+        cmd: "yq w -i $GITHUB_WORKSPACE/charts/bootstrap/values-ci.yaml targetRevision ${{ steps.env_info.outputs.issuetitle }}-branch"
+          # TODO figure out if i need these
+          #    - name: Update Chart & App Versions
+          #      uses: redhat-cop/github-actions/set-helm-version@master
+          #      with:
+          #        path: charts/my-app
+          #        chart_version: "${{ steps.env_info.outputs.issuetitle }}-branch"
+          #        app_version: "${{ steps.env_info.outputs.issuetitle }}-branch"
+
+    - name: Commit changes
+      uses: stefanzweifel/git-auto-commit-action@v4
+      with:
+        branch: "${{ steps.env_info.outputs.issuetitle }}-branch"
+        commit_message: "Merging changes requested from ${{ steps.env_info.outputs.comment_url }}"
+
+    - name: Get last release
+      id: previous_release
+      run: |
+        echo ::set-output name=last_release::$(git describe --tags --abbrev=0)
+
+    - name: Generate Release Body
+      id: release_body
+      run: |
+        echo ::set-output name=text::$(git log ${{ steps.previous_release.outputs.last_release }}..HEAD --pretty=format:"- %h %s by %an" --no-merges)
+
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
+      with:
+        tag_name: ${{ steps.env_info.outputs.issuetitle }}
+        release_name: ${{ steps.env_info.outputs.issuetitle }}
+        body: ${{ steps.release_body.outputs.text }}
+        draft: false
+        prerelease: false
+
+    - name: Create comment
+      uses: peter-evans/create-or-update-comment@v1
+      with:
+        repository: ${{ github.event.client_payload.github.payload.repository.full_name }}
+        issue-number: "${{ steps.env_info.outputs.issuenm }}"
+        body: |
+          Created release ${{ steps.env_info.outputs.issuetitle }}! 🎯
+
+          Now that you've created a release, try out `/promote` or `/deploy`! 🔥
+          | Command | Description | Parameters |
+          |---|---|---|
+          | `/promote` | Promotes with new Quay tag (e.g. demo), updates label ('promoted to demo'), and updates references on branch | N/A |
+          | `/deploy` | Deploys the promotion to k8s cluster based on Issue Title | `cluster=<ci or prod>`</br>optional: `namespace=<namespace>` note: this is also the name of the `charts/my-app/values-*.yaml` file that will be used |
+          | `/rollout` | Rollout all images to k8s cluster | `cluster=<ci or prod>`</br>optional: `namespace=<namespace>` |
+          | `/cancel` | Cancels the current release (closes this issue) | N/A |
+

@@ -1,0 +1,12 @@
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+namespace: pro
+targetRevision: pro #this is for helm configs
+imageTag: &tag pro #this is for container image
+valueFile: values-pro.yaml
+
+parameters:
+  - name: imageTag
+    value: *tag
+
