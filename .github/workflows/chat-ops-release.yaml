@@ -93,6 +93,7 @@ jobs:
         insecure_skip_tls_verify: true
     
     - name: Tag image (latest -> release id)
+      env:
         IMAGE_TAG: ${{ steps.env_info.outputs.issuetitle }}
       run: |
         oc tag $NAMESPACE/$APP_NAME:latest $NAMESPACE/$APP_NAME:$IMAGE_TAG
