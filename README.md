@@ -7,8 +7,8 @@
   - `REGISTRY_PASSWORD`
   - `REGISTRY_USER`
   - `SLASH_TOKEN`
-1. ArgoCD deployed
-1. Tekton deployed
+1. ArgoCD deployed and repo added
+1. Tekton deployed and Tasks + Pipelines deployed
 
 ## How everything works
 

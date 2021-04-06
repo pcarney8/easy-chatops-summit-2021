@@ -58,8 +58,8 @@ jobs:
         OPENSHIFT_USERNAME: opentlc-mgr 
         OPENSHIFT_NAMESPACE: argo-cd
       with:
-        openshift_server_url: ${{ secrets.OPENSHIFT_SERVER_PROD }}
-        openshift_password: ${{ secrets.OPENSHIFT_PASSWORD_PROD }}
+        openshift_server_url: ${{ secrets.OPENSHIFT_SERVER }} # If you wanted a different cluster use a different URL here
+        openshift_password: ${{ secrets.OPENSHIFT_PASSWORD }} # same as above. use Prod password or token
         insecure_skip_tls_verify: true
         namespace: ${{ env.OPENSHIFT_NAMESPACE }}
         openshift_username: ${{ env.OPENSHIFT_USERNAME }}
