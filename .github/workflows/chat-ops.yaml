@@ -12,5 +12,5 @@ jobs:
       uses: peter-evans/slash-command-dispatch@v1
       with:
         token: ${{ secrets.slash_token }}
-        commands: release, promote, cancel, deploy, tekton, rollout
+        commands: release, promote, cancel, deploy, tekton
         named-args: true

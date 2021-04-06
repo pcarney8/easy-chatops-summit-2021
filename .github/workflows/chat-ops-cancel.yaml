@@ -16,4 +16,4 @@ jobs:
       uses: peter-evans/close-issue@v1
       with:
         issue-number: ${{ steps.env_info.outputs.issuenm }}
-        comment: Cancelling rollout as requested by ${{ steps.env_info.outputs.requestor }}.
+        comment: Cancelling as requested by ${{ steps.env_info.outputs.requestor }}.

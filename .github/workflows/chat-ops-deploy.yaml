@@ -80,10 +80,8 @@ jobs:
         body: |
           Deployed ${{ steps.env_info.outputs.issuetitle }} to ${{ env.NEW_ENV }} on ${{ github.event.client_payload.slash_command.cluster }}! 🏎️
 
-          Now that you've deployed the new configuration, rollout your new images with `/rollout`!
           | Command | Description | Parameters |
           |---|---|---|
-          | `/rollout` | Rollout all images to OpenShift cluster | `cluster=<ci or prod>`</br>optional: `namespace=<namespace>` |
           | `/cancel` | Cancels the current release (closes this issue) | N/A |
 
     - name: Create comment (no cluster set)
