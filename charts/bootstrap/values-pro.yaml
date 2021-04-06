@@ -6,6 +6,8 @@ targetRevision: pro #this is for helm configs
 imageTag: &tag pro #this is for container image
 valueFile: values-pro.yaml
 
+autoSync: false
+
 parameters:
   - name: image.tag
     value: *tag
