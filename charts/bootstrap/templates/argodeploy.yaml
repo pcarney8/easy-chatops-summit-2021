@@ -13,6 +13,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: {{ .Values.app_name }}-{{ .Values.namespace }}
+  namespace: argo-cd
 spec:
   destination:
     namespace: {{ .Values.namespace }}
