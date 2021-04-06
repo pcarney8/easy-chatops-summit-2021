@@ -66,17 +66,13 @@ jobs:
 
     - name: Deploy Namespace and Argo app deployment yaml to OpenShift cluster
       if: ${{ github.event.client_payload.slash_command.namespace == 'ci' }}
-      env:
-        ARGO_NAMESPACE: argo-cd
       run: |
-        helm template ./charts/bootstrap | oc apply -n $ARGO_NAMESPACE -f -
+        helm template ./charts/bootstrap | oc apply -f -
 
     - name: Deploy Namespace and Argo app deployment yaml to OpenShift cluster
       if: ${{ github.event.client_payload.slash_command.namespace != 'ci' }}
-      env:
-        ARGO_NAMESPACE: argo-cd
       run: |
-        helm template ./charts/bootstrap -f ./charts/bootstrap/values-$NEW_ENV.yaml | oc apply -n $ARGO_NAMESPACE -f -
+        helm template ./charts/bootstrap -f ./charts/bootstrap/values-$NEW_ENV.yaml | oc apply -f -
 
     - name: Create comment
       uses: peter-evans/create-or-update-comment@v1
