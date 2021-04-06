@@ -42,7 +42,7 @@ jobs:
     - name: Authenticate and set context
       uses: redhat-actions/oc-login@v1
       env:
-        OPENSHIFT_USER: opentlc-mgr 
+        OPENSHIFT_USERNAME: opentlc-mgr 
         OPENSHIFT_NAMESPACE: ci-cd
       with:
         openshift_server_url: ${{ secrets.OPENSHIFT_SERVER }}

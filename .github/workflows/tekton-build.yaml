@@ -19,7 +19,7 @@ jobs:
     - name: Authenticate and set context
       uses: redhat-actions/oc-login@v1
       env:
-        OPENSHIFT_USER: opentlc-mgr #TODO should this just be user1? if so, make sure to change the password 
+        OPENSHIFT_USERNAME: opentlc-mgr 
         OPENSHIFT_NAMESPACE: argo-cd
       with:
         openshift_server_url: ${{ secrets.OPENSHIFT_SERVER }}
