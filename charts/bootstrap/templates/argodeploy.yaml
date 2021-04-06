@@ -23,6 +23,20 @@ subjects:
   name: default
   namespace: {{ .Values.namespace }} 
 ---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: argo-cd-access 
+  namespace: {{ .Values.namespace }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: edit 
+subjects:
+- kind: ServiceAccount
+  name: argocd-application-controller
+  namespace: argo-cd
+---
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
