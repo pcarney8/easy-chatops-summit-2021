@@ -40,7 +40,7 @@ jobs:
         PIPELINE_RUN_TEMPLATE: ".github/pipeline-runs/buildah-pipeline-run.yaml"
       run: |
         #!/bin/bash
-        PIPELINE_RUN_TRIGGER_LOGS=$(kubectl create -f $PIPELINE_RUN_TEMPLATE -n $NAMESPACE)
+        PIPELINE_RUN_TRIGGER_LOGS=$(oc create -f $PIPELINE_RUN_TEMPLATE -n $NAMESPACE)
 
         echo $PIPELINE_RUN_TRIGGER_LOGS
 
@@ -48,8 +48,8 @@ jobs:
 
         tkn pipelinerun logs -f $PIPELINE_RUN_NAME -f -n $NAMESPACE
 
-        kubectl get pipelinerun -n $NAMESPACE  $PIPELINE_RUN_NAME --no-headers  | awk '{print $2}'
-        RESULT=$(kubectl get pipelinerun -n $NAMESPACE  $PIPELINE_RUN_NAME --no-headers  | awk '{print $2}')
+        oc get pipelinerun -n $NAMESPACE  $PIPELINE_RUN_NAME --no-headers  | awk '{print $2}'
+        RESULT=$(oc get pipelinerun -n $NAMESPACE  $PIPELINE_RUN_NAME --no-headers  | awk '{print $2}')
         if [ $RESULT == "False" ]; then
           exit 1
         else

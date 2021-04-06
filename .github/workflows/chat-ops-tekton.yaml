@@ -79,10 +79,8 @@ jobs:
     - name: Run tekton
       id: tekton_run
       if: ${{ github.event.client_payload.slash_command.namespace != null }} && ${{ github.event.client_payload.slash_command.name != null }} && ${{ github.event.client_payload.slash_command.run != null }}
-      env:
-        KUBECONFIG_FILE: /home/runner/work/_temp/kubeconfig.yaml
       run: |
-        tkn ${{ github.event.client_payload.slash_command.run }} start ${{ github.event.client_payload.slash_command.name }} -n ${{ github.event.client_payload.slash_command.namespace }} -k $KUBECONFIG_FILE
+        tkn ${{ github.event.client_payload.slash_command.run }} start ${{ github.event.client_payload.slash_command.name }} -n ${{ github.event.client_payload.slash_command.namespace }} 
 
     - name: Create comment
       uses: peter-evans/create-or-update-comment@v1

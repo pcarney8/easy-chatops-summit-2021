@@ -1,4 +1,4 @@
-name: Deploy to Kubernetes
+name: Deploy to OpenShift 
 
 on:
   repository_dispatch:
@@ -67,10 +67,9 @@ jobs:
     - name: Deploy Namespace and Argo app deployment yaml to OpenShift cluster
       if: ${{ github.event.client_payload.slash_command.cluster == 'ci' }}
       env:
-        KUBECONFIG_FILE: ${{ steps.write_file_ci.outputs.filePath }}
         ARGO_NAMESPACE: argo-cd
       run: |
-        helm template ./charts/bootstrap -f ./charts/bootstrap/values-$NEW_ENV.yaml | kubectl apply -n $ARGO_NAMESPACE --kubeconfig $KUBECONFIG_FILE -f -
+        helm template ./charts/bootstrap -f ./charts/bootstrap/values-$NEW_ENV.yaml | oc apply -n $ARGO_NAMESPACE -f -
 
     - name: Create comment
       uses: peter-evans/create-or-update-comment@v1
