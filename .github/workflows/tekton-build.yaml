@@ -29,7 +29,6 @@ jobs:
         openshift_username: ${{ env.OPENSHIFT_USERNAME }}
         insecure_skip_tls_verify: true
 
-
     - name: Install CLI tools
       uses: redhat-actions/openshift-tools-installer@v1
       with:
@@ -41,15 +40,6 @@ jobs:
         PIPELINE_RUN_TEMPLATE: ".github/pipeline-runs/buildah-pipeline-run.yaml"
       run: |
         #!/bin/bash
-        echo 'in script'
-
-        env 
-
-        cat /home/runner/work/easy-chatops-summit-2021/easy-chatops-summit-2021/kubeconfig.yaml
-
-        oc whoami
-        oc get pods
-
         PIPELINE_RUN_TRIGGER_LOGS=$(oc create -f $PIPELINE_RUN_TEMPLATE -n $NAMESPACE)
 
         echo $PIPELINE_RUN_TRIGGER_LOGS
@@ -68,5 +58,5 @@ jobs:
 
     - name: Tag image (hash -> ci)
       run: |
-        oc tag $NAMESPACE/my-app:$GITHUB_SHA $NAMESPACE/my-app:ci
-        oc tag $NAMESPACE/my-app:$GITHUB_SHA $NAMESPACE/my-app:latest
+        oc tag $NAMESPACE/my-app:latest $NAMESPACE/my-app:ci
+        oc tag $NAMESPACE/my-app:latest $NAMESPACE/my-app:$GITHUB_SHA
