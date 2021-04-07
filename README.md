@@ -22,7 +22,6 @@ Once you are ready to release, create an Issue (use the [Release Issue template]
 `/deploy` to deploy via ArgoCD `Application` documentation [here](https://argoproj.github.io/argo-cd/getting_started/#6-create-an-application-from-a-git-repository)
 
 ## GitHub Actions are from:
-- https://github.com/redhat-actions/podman-login
 - https://github.com/redhat-actions/openshift-tools-installer
 - https://github.com/mikefarah/yq
 - https://github.com/peter-evans/close-issue
