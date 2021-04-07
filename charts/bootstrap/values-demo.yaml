@@ -2,10 +2,9 @@
 # Declare variables to be passed into your templates.
 
 namespace: demo
-targetRevision: demo #this is for helm configs
-imageTag: &tag demo #this is for container image
-
+targetRevision: v4.0.0-branch #this is for helm configs
+imageTag: &tag v4.0.0 #this is for container image
 parameters:
-  - name: image.tag 
+  - name: image.tag
     value: *tag
-      #TODO OVERRIDE THINGS IN VALUES.YAML INSTEAD OF USING VALUES-CI.YAML
+    #TODO OVERRIDE THINGS IN VALUES.YAML INSTEAD OF USING VALUES-CI.YAML
