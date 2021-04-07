@@ -3,15 +3,11 @@
 
 repoUrl: https://github.com/pcarney8/easy-chatops-summit-2021.git
 path: "charts/my-app"
-
-app_name: my-app 
+app_name: my-app
 namespace: ci
-targetRevision: main #this is for helm configs
+targetRevision: v2.1.0-branch #this is for helm configs
 imageTag: &tag ci #this is for container image
-
 autoSync: true
-
 parameters:
   - name: image.tag
     value: *tag
-
