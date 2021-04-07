@@ -4,9 +4,12 @@
 1. An OpenShift cluster, with credentials stored as GitHub Repository Secrets
   - `OPENSHIFT_PASSWORD`
   - `OPENSHIFT_SERVER`
-  - `SLASH_TOKEN`
 2. ArgoCD deployed and repo added
 3. Tekton deployed and Tasks + Pipelines deployed
+4. Token configured for chatops slash commands `SLASH_TOKEN` 
+
+## Notes
+This example repo uses the idea of a [trunk based development](https://trunkbaseddevelopment.com/)
 
 ## How everything works
 
