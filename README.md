@@ -6,7 +6,7 @@
   - `OPENSHIFT_SERVER`
 2. ArgoCD deployed and repo added
 3. Tekton deployed and Tasks + Pipelines deployed
-4. Token configured for chatops slash commands `SLASH_TOKEN` 
+4. [Personal Access Token](https://docs.github.com/en/github/authenticating-to-github/creating-a-personal-access-token) configured for [chatops slash commands](https://github.com/peter-evans/slash-command-dispatch#token) and GitHub Repository Secret created named: `SLASH_TOKEN` 
 
 ## Notes
 This example repo uses the idea of a [trunk based development](https://trunkbaseddevelopment.com/)
