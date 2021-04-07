@@ -22,13 +22,14 @@ Once you are ready to release, create an Issue (use the [Release Issue template]
 `/deploy` to deploy via ArgoCD `Application` documentation [here](https://argoproj.github.io/argo-cd/getting_started/#6-create-an-application-from-a-git-repository)
 
 ## GitHub Actions are from:
+- https://github.com/peter-evans/slash-command-dispatch
 - https://github.com/redhat-actions/openshift-tools-installer
+- https://github.com/redhat-actions/oc-login
 - https://github.com/mikefarah/yq
 - https://github.com/peter-evans/close-issue
 - https://github.com/peter-evans/create-or-update-comment
-- https://github.com/peter-evans/slash-command-dispatch
 - https://github.com/peterjgrainger/action-create-branch
-- https://github.com/stefanzweifel/git-auto-commit-action blog on this one here: https://github.blog/2020-09-17-github-action-hero-stefan-zweifel-and-git-auto-commit/
+- https://github.com/stefanzweifel/git-auto-commit-action 
 
 ## Tekton Tasks & Pipelines are from:
 
